@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>GerRep - Cliente</title>
+  <link rel="stylesheet" href="/styles.css"> <!-- CSS -->
+</head>
+<body>
+
+<h1><a href="/">GerRep</a></h1>
+
+<h1>Dados de __NOMECLIENTE__</h1>
+<table border="1">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Empresa</th>
+      <th>Representante</th>
+      <th>CNPJ</th>
+    </tr>
+  </thead>
+  <tbody>
+    <td>__ID__</td>
+    <td>__EMPRESA__</td>
+    <td>__REPRESENTANTE__</td>
+    <td>__CNPJ__</td>
+  </tbody>
+</table>
+<h2>Vendas:</h2>
+<h3>Registrar vendas</h3>
+  <form action="/salvar_venda" method="get">
+    <input type="hidden" name="id_cliente" value="__ID__">
+    <input type="text" name="valor_venda" placeholder="Valor da venda">
+    <input type="text" name="descricao" placeholder="Descrição da venda">
+    <input type="text" name="comissao" placeholder="Comissão da venda (%)">
+    <input type="text" name="data_venda" placeholder="Data da venda (DD/MM/AAAA)">
+    <button type="submit">Salvar</button>
+  </form>
+
+<h3>Vendas registradas</h3>
+<table border="1">
+  <thead>
+    <tr>
+      <th>Empresa</th>
+      <th>Valor</th>
+      <th>Comissão (%)</th>
+      <th>Ganho</th>
+      <th>Data</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    __LISTAVENDAS__
+  </tbody>
+</table>
+<br>
+<h2>Upload de projetos/PDF's de venda:</h2>
+<form action='/upload_pdf?id_cliente=__ID__' method='POST' enctype='multipart/form-data'>
+  <input type='file' name='pdf' accept='.pdf'>
+  <button type='submit'>Enviar PDF</button>
+</form>
+
+<h2>Meus Projetos/PDF's:</h2>
+<form action='/pdf/download' method='GET' id="form-pdf">
+  <input type='hidden' name='id_cliente' value='__ID__'>
+  <select name='id_pdf'>
+    __PDFSOPTIONS__
+  </select>
+  <button type='submit'>Baixar PDF</button>
+  <button type='submit' onclick='document.getElementById("form-pdf").action="/excluir_pdf"'>Excluir PDF</button>
+</form>
+
+</body>
+</html>
