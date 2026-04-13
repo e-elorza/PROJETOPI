@@ -42,6 +42,7 @@
   <thead>
     <tr>
       <th>Empresa</th>
+      <th>Id Venda</th>
       <th>Valor</th>
       <th>Comissão (%)</th>
       <th>Ganho</th>
@@ -57,6 +58,9 @@
 <h2>Upload de projetos/PDF's de venda:</h2>
 <form action='/upload_pdf?id_cliente=__ID__' method='POST' enctype='multipart/form-data'>
   <input type='file' name='pdf' accept='.pdf'>
+  <select name='id_venda'>
+    __VENDASOPTIONS__
+  </select>
   <button type='submit'>Enviar PDF</button>
 </form>
 

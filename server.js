@@ -29,13 +29,24 @@ banco.prepare(`
   CREATE TABLE IF NOT EXISTS pdfs (
     id_pdf      INTEGER PRIMARY KEY AUTOINCREMENT,
     id_cliente  INTEGER,
+    id_venda    INTEGER,
     nome        TEXT,
     dados       BLOB,
     FOREIGN KEY (id_cliente)
     REFERENCES clientes(id_cliente)
-    ON DELETE CASCADE
+    ON DELETE CASCADE,
+    FOREIGN KEY (id_venda)
+    REFERENCES vendas(id_venda)
+    ON DELETE SET NULL
   )
 `).run()
+
+// Migração: adiciona coluna id_venda se ainda não existir (para bancos já criados)
+try {
+  banco.prepare("ALTER TABLE pdfs ADD COLUMN id_venda INTEGER REFERENCES vendas(id_venda) ON DELETE SET NULL").run()
+} catch (e) {
+  // Coluna já existe, ignorar erro
+}
 
 app.get("/", (req, res) => {
   try {
@@ -135,6 +146,7 @@ app.get("/cliente", (req, res) => {
       let venda = vendas[i]
       itens = itens + "<tr>" +
         "<td>" + venda.nome_empresa + "</td>" +
+        "<td>" + venda.id_venda + "</td>" +
         "<td>R$" + venda.valor_venda + "</td>" +
         "<td>" + venda.comissao + "%</td>" +
         "<td>R$" + (venda.valor_venda * (venda.comissao / 100)).toFixed(2) + "</td>" +
@@ -147,10 +159,19 @@ app.get("/cliente", (req, res) => {
     let opcoesPdf = ""
     for (let i = 0; i < pdfs.length; i++) {
       let pdf = pdfs[i]
-      opcoesPdf = opcoesPdf + "<option value='" + pdf.id_pdf + "'>" + pdf.nome + "</option>"
+      const vendaLabel = pdf.id_venda ? " (Venda #" + pdf.id_venda + ")" : ""
+      opcoesPdf = opcoesPdf + "<option value='" + pdf.id_pdf + "'>" + pdf.nome + vendaLabel + "</option>"
+    }
+
+    // Opções de vendas para o dropdown de vínculo no upload
+    let opcoesVenda = "<option value=''>-- Nenhuma --</option>"
+    for (let i = 0; i < vendas.length; i++) {
+      let venda = vendas[i]
+      opcoesVenda = opcoesVenda + "<option value='" + venda.id_venda + "'>Venda #" + venda.id_venda + " - " + venda.descricao + " (R$" + venda.valor_venda + ")</option>"
     }
 
     pagina = pagina.replace("__PDFSOPTIONS__", opcoesPdf)
+    pagina = pagina.replace("__VENDASOPTIONS__", opcoesVenda)
     pagina = pagina.replace("__LISTAVENDAS__", itens)
     res.send(pagina)
   } catch (erro) {
@@ -216,14 +237,34 @@ app.post('/upload_pdf', upload.single('pdf'), (req, res) => {
       return res.status(400).send("<p>Erro: nenhum arquivo enviado. <a href='javascript:history.back()'>Voltar</a></p>")
     }
 
+    const id_venda = (req.body.id_venda && req.body.id_venda !== "") ? req.body.id_venda : null
+
     banco.prepare(
-      'INSERT INTO pdfs (id_cliente, nome, dados) VALUES (?, ?, ?)'
-    ).run(id_cliente, req.file.originalname, req.file.buffer)
+      'INSERT INTO pdfs (id_cliente, id_venda, nome, dados) VALUES (?, ?, ?, ?)'
+    ).run(id_cliente, id_venda, req.file.originalname, req.file.buffer)
 
     res.redirect('/cliente?id_cliente=' + id_cliente)
   } catch (erro) {
     console.error("Erro ao fazer upload do PDF:", erro.message)
     res.status(500).send("<p>Erro ao enviar PDF. Tente novamente. <a href='javascript:history.back()'>Voltar</a></p>")
+  }
+})
+
+app.get('/vincular_pdf', (req, res) => {
+  try {
+    const id_pdf = req.query.id_pdf
+    const id_venda = req.query.id_venda || null
+    const id_cliente = req.query.id_cliente
+
+    if (!id_pdf) {
+      return res.status(400).send("<p>Erro: ID do PDF não informado. <a href='/'>Voltar</a></p>")
+    }
+
+    banco.prepare('UPDATE pdfs SET id_venda = ? WHERE id_pdf = ?').run(id_venda || null, id_pdf)
+    res.redirect('/cliente?id_cliente=' + id_cliente)
+  } catch (erro) {
+    console.error("Erro ao vincular PDF:", erro.message)
+    res.status(500).send("<p>Erro ao vincular PDF à venda. <a href='javascript:history.back()'>Voltar</a></p>")
   }
 })
 
